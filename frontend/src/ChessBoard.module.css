@@ -1,0 +1,140 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  padding: 20px;
+}
+.gameOverMessage {
+  position: absolute;
+  top: 20px; /* Adjust this value to move the message down */
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(255, 0, 0, 0.8);
+  color: white;
+  padding: 10px;
+  border-radius: 5px;
+  z-index: 10;
+}
+.board {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  gap: 0;
+  border: 2px solid #4a4a4a;
+  width: 80vmin;
+  height: 80vmin;
+}
+
+.rotate180 {
+  transform: rotate(180deg);
+}
+
+.square {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.light {
+  background-color: #a9df93;
+}
+
+.dark {
+  background-color: #569352;
+}
+
+.selected {
+  background-color: #f2cd4d;
+}
+
+.availableMove {
+  background-color: #88c0d0;
+}
+
+.piece {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 600px;
+  margin-bottom: 1em;
+  text-align: center;
+}
+
+.playerInfo, .timer {
+  flex: 1;
+}
+
+.playerName {
+  font-weight: bold;
+  font-size: 1.2em;
+}
+
+.timer {
+  font-size: 1.5em;
+}
+
+.time {
+  font-size: 1.5em;
+}
+
+.gameContainer {
+  display: flex;
+  gap: 20px;
+}
+
+.movesLog {
+  border: 2px solid #4a4a4a;
+  padding: 10px;
+  width: 200px;
+  max-height: 80vmin;
+  overflow-y: auto;
+}
+
+.movesLog h2 {
+  font-size: 1.2em;
+  margin-bottom: 10px;
+}
+
+.movesLog ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.movesLog li {
+  font-size: 1em;
+  margin-bottom: 5px;
+}
+
+.resignButton {
+  background-color: #ff4d4d; /* Red background color */
+  color: white; /* White text color */
+  border: none; /* No border */
+  padding: 10px 20px; /* Padding for the button */
+  text-align: center; /* Center the text */
+  text-decoration: none; /* Remove underline */
+  display: inline-block; /* Display inline-block */
+  font-size: 16px; /* Font size */
+  margin: 10px 2px; /* Margin around the button */
+  cursor: pointer; /* Cursor changes to pointer on hover */
+  border-radius: 5px; /* Rounded corners */
+  transition: background-color 0.3s; /* Smooth transition for background color */
+}
+
+.resignButton:hover {
+  background-color: #ff3333; /* Darker red on hover */
+}
+
+.resignButton:disabled {
+  background-color: #cccccc; /* Gray background when disabled */
+  cursor: not-allowed; /* Not-allowed cursor */
+}
