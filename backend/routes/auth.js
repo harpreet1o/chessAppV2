@@ -2,18 +2,22 @@
 import express from 'express';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
-import jwt from 'jsonwebtoken';
+
 import { v4 as uuidv4 } from 'uuid';
-import { createUser, findUserByEmail, matchPassword, findUserById,UserLoginByGoogle } from '../models/User.js';
+import { createUser, findUserByEmail,  findUserById,UserLoginByGoogle } from '../models/User.js';
+import { matchPassword, authenticateJWT, generateToken } from '../models/helper.js';
 import { getGamesByUserId } from '../models/games.js';
 import config from '../config.js';
 
 const secretKeyJWT=config.secretKeyJWT;
 
+const router = express.Router();
+
+
 passport.use(new GoogleStrategy({
   clientID: config.googleClientId,
   clientSecret: config.googleClientSecret,
-  callbackURL: 'http://localhost:3000/oauth2/redirect/google', // Ensure this matches your route
+  callbackURL: 'http://localhost:3000/oauth2/redirect/google', 
   scope: ['profile', 'email', 'openid']
 },async (accessToken, refreshToken,issuer, profile, cb) => {
   console.log("acess token");
@@ -40,31 +44,38 @@ passport.deserializeUser((id, cb) => {
   });
 });
 
-const router = express.Router();
-
-// Utility function to generate JWT
-const generateToken = (userId) => {
-  return jwt.sign({ id: userId }, secretKeyJWT, { expiresIn: '24h' });
-};
-
-// Middleware to authenticate the JWT token
-const authenticateJWT = (req, res, next) => {
-  const token = req.cookies.token;
-
-  if (token) {
+router.get('/login/federated/google', (req, res, next) => {
+  console.log(req.cookies.token);
+  if (req.cookies && req.cookies.token) {
+    const token = req.cookies.token;
     jwt.verify(token, secretKeyJWT, (err, decoded) => {
       if (err) {
-        return res.sendStatus(403);
+        return res.status(403).json({ message: 'Failed to authenticate token.' });
       }
-      req.user = decoded;
-      console.log("decoded");
-      console.log(decoded);
-      next();
+      findUserById(decoded.id, (err, user) => {
+        if (err) {
+          return res.status(500).json({ message: 'Internal server error.' });
+        }
+        if (user) {
+          res.redirect(`http://localhost:5173`);
+        }
+        return next();
+      });
     });
   } else {
-    res.sendStatus(401);
+    passport.authenticate('google')(req, res, next);
   }
-};
+});
+
+router.get('/oauth2/redirect/google', passport.authenticate('google', {
+  session: false,
+  failureRedirect: 'http://localhost:5173/login'
+}), (req, res) => {
+  const token = generateToken(req.user.id);
+  res.cookie('token', token, { httpOnly: true, secure: true, sameSite: "none" , path: '/'});
+  res.redirect(`http://localhost:5173`);
+});
+
 
 // User registration route
 router.post('/register',async (req, res) => {
@@ -109,39 +120,6 @@ catch(err){
   console.err(err);
 }
 });
-
-router.get('/login/federated/google', (req, res, next) => {
-  console.log(req.cookies.token);
-  if (req.cookies && req.cookies.token) {
-    const token = req.cookies.token;
-    jwt.verify(token, secretKeyJWT, (err, decoded) => {
-      if (err) {
-        return res.status(403).json({ message: 'Failed to authenticate token.' });
-      }
-      findUserById(decoded.id, (err, user) => {
-        if (err) {
-          return res.status(500).json({ message: 'Internal server error.' });
-        }
-        if (user) {
-          res.redirect(`http://localhost:5173`);
-        }
-        return next();
-      });
-    });
-  } else {
-    passport.authenticate('google')(req, res, next);
-  }
-});
-
-router.get('/oauth2/redirect/google', passport.authenticate('google', {
-  session: false,
-  failureRedirect: 'http://localhost:5173/login'
-}), (req, res) => {
-  const token = generateToken(req.user.id);
-  res.cookie('token', token, { httpOnly: true, secure: true, sameSite: "none" , path: '/'});
-  res.redirect(`http://localhost:5173`);
-});
-
 
 
   router.post('/logout', (req, res) => {

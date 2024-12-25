@@ -1,27 +1,4 @@
-import sql from 'mssql';
-import bcrypt from 'bcryptjs';
-import config from '../config.js';
-import { userInfo } from 'os';
-
-const dbConfig = {
-  user: config.databaseUser,
-  password: config.databasePassword,
-  server: config.databaseServer,
-  database: config.databaseName,
-  options: {
-    encrypt: true, // for Azure SQL Database
-    trustServerCertificate: config.databaseTrustServerCertificate === 'yes',
-  },
-  connectionTimeout: parseInt(config.databaseConnectionTimeout, 10)
-};
-
-// Initialize Azure SQL Database connection
-const poolPromise = sql.connect(dbConfig).then(pool => {
-  console.log('Connected to Azure SQL Database');
-  return pool;
-}).catch(err => {
-  console.error('Database connection failed: ', err);
-});
+import poolPromise from './dbconnect.js';
 
 // Function to find user by ID
 const findUserById = async (id) => {
@@ -37,6 +14,7 @@ const findUserById = async (id) => {
     return (err);
   }
 };
+// function to check the user if the user choose to login with the google
 const UserLoginByGoogle=async({id, email, name})=>{
   try{
     const pool = await poolPromise;
@@ -83,7 +61,7 @@ const createUser = async ({ id, email, name, password }) => {
   }
 };
 
-// Function to find user by email
+// Function to find user by email for 
 const findUserByEmail = async (email) => {
   try {
     const pool = await poolPromise;
@@ -96,7 +74,5 @@ const findUserByEmail = async (email) => {
   }
 };
 
-// Function to compare passwords
-const matchPassword = (password, hash) => bcrypt.compareSync(password, hash);
 
-export { findUserById, createUser, findUserByEmail, matchPassword,UserLoginByGoogle };
+export { findUserById, createUser, findUserByEmail,UserLoginByGoogle };
