@@ -2,14 +2,17 @@
 import express from 'express';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
-
 import { v4 as uuidv4 } from 'uuid';
 import { createUser, findUserByEmail,  findUserById,UserLoginByGoogle } from '../models/User.js';
 import { matchPassword, authenticateJWT, generateToken } from '../models/helper.js';
 import { getGamesByUserId } from '../models/games.js';
 import config from '../config.js';
+import jwt from 'jsonwebtoken';
+
+// Function to compare passwords
 
 const secretKeyJWT=config.secretKeyJWT;
+
 
 const router = express.Router();
 
@@ -44,23 +47,19 @@ passport.deserializeUser((id, cb) => {
   });
 });
 
-router.get('/login/federated/google', (req, res, next) => {
+router.get('/login/federated/google',(req, res, next) => {
   console.log(req.cookies.token);
   if (req.cookies && req.cookies.token) {
     const token = req.cookies.token;
-    jwt.verify(token, secretKeyJWT, (err, decoded) => {
+    jwt.verify(token, secretKeyJWT, async (err, decoded) => {
       if (err) {
-        return res.status(403).json({ message: 'Failed to authenticate token.' });
+        passport.authenticate('google')(req, res, next);
       }
-      findUserById(decoded.id, (err, user) => {
-        if (err) {
-          return res.status(500).json({ message: 'Internal server error.' });
-        }
-        if (user) {
+      else{
+    const result= await findUserById(decoded.id);
+    if(result)
           res.redirect(`http://localhost:5173`);
-        }
-        return next();
-      });
+  }
     });
   } else {
     passport.authenticate('google')(req, res, next);
@@ -99,7 +98,7 @@ router.post('/register',async (req, res) => {
  }
 }
 catch(err){
-  console.err(err);
+  console.error(err);
 }
    });
 

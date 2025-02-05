@@ -1,5 +1,6 @@
 import poolPromise from './dbconnect.js';
-
+import sql from 'mssql';
+import bcrypt from "bcryptjs";
 // Function to find user by ID
 const findUserById = async (id) => {
   try {
@@ -40,6 +41,7 @@ const UserLoginByGoogle=async({id, email, name})=>{
 // Function to create a new user
 const createUser = async ({ id, email, name, password }) => {
   let hashedPassword = null;
+  console.log("hi");
   if (password) {
     const salt = bcrypt.genSaltSync(10);
     hashedPassword = bcrypt.hashSync(password, salt);

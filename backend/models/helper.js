@@ -1,6 +1,11 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import config from '../config.js';
+
 // Function to compare passwords
+
+const secretKeyJWT=config.secretKeyJWT;
+
 const  matchPassword = (password, hash) => bcrypt.compareSync(password, hash);
 // Utility function to generate JWT
 const generateToken = (userId) => {

@@ -40,35 +40,13 @@ const clearAllRedisKeys = async () => {
     console.error(error);
   }
 };
-// this run at the start of the program
+
 (async () => {
   await redisClient.connect();
   await clearAllRedisKeys();
   console.log('Redis client connected successfully.');
-  // creating lobbies in the redis client for storing the object data
-  const result = await redisClient.json.set(
-    "lobbies",
-    "$",
-    {
-      lobby5min:{},
-      lobby10min:{},
-      lobby1min:{}
-    }
-  )
-  const lobbies = await redisClient.json.get("lobbies");
-  console.log(lobbies);
-  await redisClient.json.set("lobbies", "$.lobby5min.id1", { name: "hello" })
-  await redisClient.json.set("lobbies", "$.lobby5min.id", { name: "hello" })
-  let lobbie=await redisClient.json.get("lobbies");
-  console.log(lobbie);
-  const id="id1"
-  const removedCount = await redisClient.json.del(
-    "lobbies",          // the Redis key where your JSON is stored
-    `$.lobby5min.${id}`    // JSON path to the object you want to delete
-  );
-  lobbie=await redisClient.json.get("lobbies");
-  console.log(lobbie);
 })();
+
 
 
 app.use(
@@ -82,17 +60,16 @@ app.use(express.json());
 app.use(cookieParser());
 app.use('/', authRoutes);
 
-// for checking the server error
-// app.get("/id", (req, res) => {
-//   console.log("hi from server side");
-//   res.send("Hello from server side");
-// });
+app.get("/id", (req, res) => {
+  console.log("hi from server side");
+  res.send("Hello from server side");
+});
 
 const gameTimers = {};
 const lobbies = {
-  1: [], 
-  5: [],
-  10: [] 
+  1: [], // 1 minute lobby
+  5: [], // 5 minutes lobby
+  10: [] // 10 minutes lobby
 };
 const startTimer = (uniqueRoomIndex) => {
   if (!gameTimers[uniqueRoomIndex]) {
@@ -175,12 +152,14 @@ const endGame = async (uniqueRoomIndex, winnerColor, reason) => {
 const assignUserToRoom = async (socket, userId, selectedTime) => {
 
   const userName = socket.handshake.query.username;
-  console.log(`username ${userName}`);
+  console.log("username", userName)
+
   const userRoomKey = `userRoom:${userId}`;
   const roomsKey = "rooms";
   console.log(userRoomKey);
 
   const existingRoom = await redisClient.get(userRoomKey);
+
   if (existingRoom) {
     const roomInfo = JSON.parse(existingRoom);
     console.log(roomInfo);
