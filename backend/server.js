@@ -149,14 +149,14 @@ const endGame = async (uniqueRoomIndex, winnerColor, reason) => {
   const room = lobby.find(room => room.roomIndex === parseInt(roomIndex));
   
   if (room) {
-    const winner = winnerColor === "w" ? room.white : room.black;
-    const loser = winnerColor === "w" ? room.black : room.white;
+    const result = winnerColor === "w" ? "w" : "b";
+  
 
     io.to(uniqueRoomIndex).emit("gameOver", reason);
     const gameState = JSON.stringify(new Chess(room.game).history({ verbose: true }));
 
     // Save game result in Azure SQL Database
-    await saveAzureGameResult(room.white, room.black, winner, loser, gameState);
+    await saveAzureGameResult(room.white, room.black, result, gameState);
         await redisClient.del(`userRoom:${room.white}`);
         await redisClient.del(`userRoom:${room.black}`);
       
@@ -346,25 +346,28 @@ io.on("connection", (socket) => {
         // Check for game-ending conditions
         let gameOver = false;
         let gameOverMessage = "";
-        let winner = null;
-        let loser = null;
+        let result = null;
 
         if (game.isCheckmate()) {
           gameOver = true;
           gameOverMessage = "Checkmate";
-          winner = game.turn() === 'b' ? room.white : room.black;
-          loser = game.turn() === 'b' ? room.black : room.white;
+          result= game.turn() === 'b' ? "w" : "b";
+          
         } else if (game.isStalemate()) {
           gameOver = true;
+          result="d";
           gameOverMessage = "Stalemate";
         } else if (game.isInsufficientMaterial()) {
           gameOver = true;
+          result="d";
           gameOverMessage = "Insufficient material";
         } else if (game.isThreefoldRepetition()) {
           gameOver = true;
+          result="d";
           gameOverMessage = "Threefold repetition";
         } else if (game.isDraw()) {
           gameOver = true;
+          result="d";
           gameOverMessage = "Draw";
         }
         // Update game state in Redis
@@ -385,12 +388,11 @@ io.on("connection", (socket) => {
           const gameState = JSON.stringify(room.history);
           console.log("gameover--gameState "+gameState);
           console.log("gameover--roomindex"+room.roomIndex)
-          saveAzureGameResult(room.roomIndex,room.white, room.black, winner, loser, gameState, async (err) => {
+          await saveAzureGameResult(room.white, room.black, winner, loser, gameState)
 
-            if (!err) {
+
               await redisClient.del(userRoomKey);
-            }
-          });
+            
           endGame(uniqueRoomIndex, winner, gameOverMessage);
         }
       } else {
