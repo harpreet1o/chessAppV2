@@ -62,6 +62,7 @@ const clearAllRedisKeys = async () => {
   let lobbie=await redisClient.json.get("lobbies");
   console.log(lobbie);
   const id="id1"
+  
   const removedCount = await redisClient.json.del(
     "lobbies",          // the Redis key where your JSON is stored
     `$.lobby5min.${id}`    // JSON path to the object you want to delete
@@ -155,12 +156,10 @@ const endGame = async (uniqueRoomIndex, winnerColor, reason) => {
     const gameState = JSON.stringify(new Chess(room.game).history({ verbose: true }));
 
     // Save game result in Azure SQL Database
-    saveAzureGameResult(room.white, room.black, winner, loser, gameState, async (err) => {
-      if (!err) {
+    await saveAzureGameResult(room.white, room.black, winner, loser, gameState);
         await redisClient.del(`userRoom:${room.white}`);
         await redisClient.del(`userRoom:${room.black}`);
-      }
-    });
+      
 
     // Remove room from lobby
     lobby.splice(lobby.findIndex(room => room.roomIndex === parseInt(roomIndex)), 1);
@@ -368,9 +367,12 @@ io.on("connection", (socket) => {
           gameOver = true;
           gameOverMessage = "Draw";
         }
-
         // Update game state in Redis
         room.game = game.fen();
+        
+            const gameState = JSON.stringify(room.history);
+          console.log("gameState "+gameState);
+          console.log("roomindex"+userRoom.roomIndex)
         await redisClient.set("rooms", JSON.stringify(lobbies)); // Save updated lobbies to Redis
 
         // Emit updated game state to both players in the room
@@ -381,8 +383,9 @@ io.on("connection", (socket) => {
           // Save game result and remove the room from Redis
 
           const gameState = JSON.stringify(room.history);
-          
-          saveAzureGameResult(room.white, room.black, winner, loser, gameState, async (err) => {
+          console.log("gameover--gameState "+gameState);
+          console.log("gameover--roomindex"+room.roomIndex)
+          saveAzureGameResult(room.roomIndex,room.white, room.black, winner, loser, gameState, async (err) => {
 
             if (!err) {
               await redisClient.del(userRoomKey);
@@ -446,7 +449,7 @@ io.on("connection", (socket) => {
         console.log(`User ${userId} left room ${uniqueRoomIndex} (was black)`);
       }
 
-      // Optionally remove empty rooms
+      
       if (!room.white && !room.black) {
         const roomIndexInLobby = lobby.findIndex(room => room.roomIndex === userRoom.roomIndex);
         lobby.splice(roomIndexInLobby, 1);

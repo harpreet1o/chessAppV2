@@ -1,18 +1,29 @@
 import poolPromise from "./dbconnect.js";
 // Function to save game result
-const saveGameResult = async (whitePlayer, blackPlayer, winner, loser, gameState, cb) => {
+import sql from 'mssql';
+const saveGameResult = async (roomIndex,whitePlayer, blackPlayer, winner, loser, gameState) => {
+  console.log("whiteplayer"+whitePlayer);
+  console.log("blackplayer"+blackPlayer);
+  console.log("winner"+winner);
+  console.log("gameState"+gameState);
+  console.log("loser"+loser);
   try {
+    console.log(whitePlayer);
+    console.log(blackPlayer);
+    console.log(winner);
+    console.log(gameState);
     const pool = await poolPromise;
     await pool.request()
+    .input('id', sql.Char, roomIndex)
       .input('whitePlayer', sql.VarChar, whitePlayer)
       .input('blackPlayer', sql.VarChar, blackPlayer)
       .input('winner', sql.VarChar, winner)
       .input('loser', sql.VarChar, loser)
       .input('gameState', sql.VarChar, gameState)
-      .query('INSERT INTO game_history (white_player, black_player, winner, loser, game_state) VALUES (@whitePlayer, @blackPlayer, @winner, @loser, @gameState)');
-    cb(null);
+      .query('INSERT INTO game_history (id,white_player, black_player, winner, loser, game_state) VALUES (@id,@whitePlayer, @blackPlayer, @winner, @loser, @gameState)');
+   
   } catch (err) {
-    cb(err);
+    console.error('Error saving game result:', err.message);
   }
 };
 

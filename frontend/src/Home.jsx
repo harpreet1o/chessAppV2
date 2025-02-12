@@ -20,14 +20,14 @@ const Home = () => {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4 text-center">Welcome to the Chess Game</h1>
+      <h1 className="text-2xl font-bold mb-4 text-center">Ready to play a chess match</h1>
       {message && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 text-center" role="alert">
           <span className="block sm:inline">{message}</span>
         </div>
       )}
       <div className="flex flex-col items-center">
-        <label className="mb-4">
+        <label className="mb-4 flex flex-col items-center">
           <span className="block text-lg font-semibold mb-2">Select Game Time:</span>
           <select value={selectedTime} onChange={(e) => setSelectedTime(e.target.value)} className="border rounded px-2 py-1">
             <option value="1">1 Minute</option>

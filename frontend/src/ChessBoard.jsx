@@ -43,7 +43,7 @@ export default function ChessBoard() {
         query: { time, username: user } // Include username in query parameters
       });
     }
-    return null;
+    return null;  
   }, [time]);
 
   useEffect(() => {
@@ -165,22 +165,20 @@ export default function ChessBoard() {
   return (
     <div className={styles.container}>
       {gameOverMessage && <div className={styles.gameOverMessage}>{gameOverMessage}</div>}
-      <div className="timers">
-        <p>White: {formatTime(whiteTime)}</p>
-        <p>Black: {formatTime(blackTime)}</p>
-      </div>
       <div className={styles.info}>
         <div className={styles.playerInfo}>
           <p>White:</p>
           <p className={styles.playerName}>
             {players.white ? players.white.userName : "Not connected yet"}
           </p>
+          <p>{formatTime(whiteTime)}</p>
         </div>
         <div className={styles.playerInfo}>
           <p>Black:</p>
           <p className={styles.playerName}>
             {players.black ? players.black.userName : "Not connected yet"}
           </p>
+          <p>{formatTime(blackTime)}</p>
         </div>
       </div>
       <div className={`${styles.board} ${playerRole === "b" ? styles.rotate180 : ""}`}>

@@ -20,15 +20,15 @@ const Navbar = () => {
   return (
     <nav className="p-4 bg-blue-500 text-white shadow-lg">
       <div className="container mx-auto flex justify-between items-center">
-        <h1 className="text-2xl font-bold">
-          <Link to="/" className="hover:text-gray-200">Chess App</Link>
-        </h1>
-        <Link to="/">Home</Link>
-
-        <Link to="/profile">Profile</Link>
+        <div className="text-2xl font-bold">
+          <Link to="/" className="hover:text-gray-200 flex"><img className="h-10 w-10" src="/chess.svg"/><p>ChessApp</p></Link>
+        </div>
+          
         <div>
+         
           {user ? (
             <div className="flex items-center">
+              <Link to="/profile"><img src="/profile.svg" className='h-10 w-10'/></Link>
               <span className="mr-4">Hi, {user}</span>
               <button 
                 onClick={handleLogout} 
@@ -39,6 +39,7 @@ const Navbar = () => {
             </div>
           ) : (
             <div className="flex items-center">
+               <Link to="/profile"><img src="/profile.svg" className='h-10 w-10'/></Link>
               <Link 
                 to="/login" 
                 className="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700 transition duration-200 mr-4"
