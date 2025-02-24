@@ -57,7 +57,7 @@ export default function ChessBoard() {
 
 
 
-    socket.on('roleAssigned', ({ role, userName, socketId }) => {
+    socket.on('roleAssign', ({ role, userName }) => {
       console.log('Role assigned:', role);
       setPlayerRole(role);
       setPlayers(prev => ({ ...prev, [role === "w" ? "white" : "black"]: { userName, socketId } }));
