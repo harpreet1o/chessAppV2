@@ -1,26 +1,24 @@
 import poolPromise from "./dbconnect.js";
 // Function to save game result
 import sql from 'mssql';
-const saveGameResult = async (whitePlayer, blackPlayer, result, gameState) => {
-  console.log("whiteplayer"+whitePlayer);
-  console.log("blackplayer"+blackPlayer);
- console.log("result"+result);
- try {
-  const pool = await poolPromise;
-  await pool.request()
-    .input('whitePlayer', sql.VarChar, whitePlayer)
-    .input('blackPlayer', sql.VarChar, blackPlayer)
-    .input('result', sql.VarChar, result) 
-    .input('gameState', sql.Text, gameState) 
-    .query(`
-      INSERT INTO game (white_player, black_player, result, game_state) 
-      VALUES (@whitePlayer, @blackPlayer, @result, @gameState)
-    `);
-} catch (err) {
-  console.error('Error saving game result:', err.message);
-}
-
+const saveGameResult = async (whitePlayer, blackPlayer, result, message, gameState) => {
+  try {
+    const pool = await poolPromise;
+    await pool.request()
+      .input('whitePlayer', sql.VarChar, whitePlayer)
+      .input('blackPlayer', sql.VarChar, blackPlayer)
+      .input('result', sql.VarChar, result)
+      .input('message', sql.VarChar, message) // Add message input
+      .input('gameState', sql.VarChar(sql.MAX), gameState) // Use VARCHAR(MAX) for large text data
+      .query(`
+        INSERT INTO game (white_player, black_player, result, message, game_state)
+        VALUES (@whitePlayer, @blackPlayer, @result, @message, @gameState)
+      `);
+  } catch (err) {
+    console.error('Error saving game result:', err.message);
+  }
 };
+
 
 // Function to get all game histories
 const getAllGameHistories = async (cb) => {
@@ -51,10 +49,10 @@ const getGamesByUserId = async (userId, cb) => {
     const result = await pool.request()
       .input('userId', sql.VarChar, userId)
       .query(`
-        SELECT g.*, wu.name AS white_username, bu.name AS black_username
+        SELECT g.*, wu.username AS white_player, bu.username AS black_player
         FROM game g
-        LEFT JOIN [user] wu ON g.white_player = wu.id
-        LEFT JOIN [user] bu ON g.black_player = bu.id
+        LEFT JOIN [userbase] wu ON g.white_player = wu.uuid
+        LEFT JOIN [userbase] bu ON g.black_player = bu.uuid
         WHERE g.white_player = @userId OR g.black_player = @userId
       `);
 
@@ -67,3 +65,12 @@ const getGamesByUserId = async (userId, cb) => {
 
 
 export { saveGameResult, getAllGameHistories, getGameHistoryById, getGamesByUserId };
+
+// CREATE TABLE game (
+//   id INT IDENTITY(1,1) PRIMARY KEY,
+//   white_player VARCHAR(255),
+//   black_player VARCHAR(255),
+//   result VARCHAR(50),
+//   message VARCHAR(255),
+//   game_state VARCHAR(MAX)
+// );

@@ -1,10 +1,9 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
-import { UserContext } from '../context/UserContext';
+
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
-  const { setUser } = useContext(UserContext);
   const [error, setError] = useState('');
 
   const onChange = (e) => {
@@ -17,7 +16,6 @@ const Login = () => {
     try {
       const res = await axios.post('http://localhost:3000/login', formData, { withCredentials: true });
       console.log(res.data)
-      setUser({ username: res.data.result.username }); // Set only necessary properties
       window.location.href = 'http://localhost:5173/';
     } catch (err) {
       if (err.response && err.response.data) {

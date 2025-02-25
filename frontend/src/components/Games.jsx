@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
+
 const Games = () => {
     const [games, setGames] = useState([]);
     const [loading, setLoading] = useState(true);

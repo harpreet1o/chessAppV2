@@ -9,7 +9,8 @@ import { createClient } from "redis";
 import config from './config.js';
 import sql from 'mssql';
 import authRoutes from './routes/auth.js';
-import { saveGameResult as saveAzureGameResult } from "./models/games.js"; // Assume you have a similar Azure implementation
+import { saveGameResult as saveAzureGameResult, saveGameResult } from "./models/games.js"; // Assume you have a similar Azure implementation
+import { userInfo } from "os";
 
 const secretKeyJWT = config.secretKeyJWT;
 const port = config.port;
@@ -83,11 +84,11 @@ if(!gameTimers[uniqueRoomIndex]){
         whiteTime: selectedTime * 60, // Convert minutes to seconds
         blackTime: selectedTime * 60,
         currentPlayer: "w",
-        intervalId: setInterval(() => updateTimer(uniqueRoomIndex), 1000),
+        intervalId: setInterval(() => updateTimer(uniqueRoomIndex,selectedTime), 1000),
       };
     }
 };
-const updateTimer = (uniqueRoomIndex) => {
+const updateTimer = (uniqueRoomIndex,selectedTime) => {
   const timer = gameTimers[uniqueRoomIndex];
   if (!timer) {
     console.error(`Timer not found: ${uniqueRoomIndex}`);
@@ -96,12 +97,12 @@ const updateTimer = (uniqueRoomIndex) => {
   if (timer.currentPlayer === "w") {
     timer.whiteTime--;
     if (timer.whiteTime <= 0) {
-      endGame(uniqueRoomIndex, "black", "Time out");
+      endGame(uniqueRoomIndex,`${selectedTime}min`, "black", "Time out");
     }
   } else {
     timer.blackTime--;
     if (timer.blackTime <= 0) {
-      endGame(uniqueRoomIndex, "white", "Time out");
+      endGame(uniqueRoomIndex, `${selectedTime}min`,"white", "Time out");
     }
   }
   io.to(uniqueRoomIndex).emit("timerUpdate", {
@@ -110,26 +111,17 @@ const updateTimer = (uniqueRoomIndex) => {
   });
 };
 
-const endGame = async (uniqueRoomIndex, winnerColor, reason) => {
+const endGame = async (room,lobby,result,message) => {
   const timer = gameTimers[uniqueRoomIndex];
   if (timer) {
-    clearInterval(timer.intervalId);
     delete gameTimers[uniqueRoomIndex];
   }
+   
+  if (room) { 
 
-  const [roomIndex, selectedTime] = uniqueRoomIndex.split('-');
-  const lobby = lobbies[selectedTime];
-  const room = lobby.find(room => room.roomIndex === parseInt(roomIndex));
-  
-  if (room) {
-    const result = winnerColor === "w" ? "w" : "b";
-  
-
-    io.to(uniqueRoomIndex).emit("gameOver", reason);
-    const gameState = JSON.stringify(new Chess(room.game).history({ verbose: true }));
-
-    // Save game result in Azure SQL Database
-    await saveAzureGameResult(room.white, room.black, result, gameState);
+    io.to(room).emit("gameOver", {message: message, result: result});
+    const room= await redisClient.json.get("lobbies", {path:`$.${lobby}.${room}`})[0];
+    await saveGameResult(room.white, room.black, result,message, room.gameHistory);
         await redisClient.del(`userRoom:${room.white}`);
         await redisClient.del(`userRoom:${room.black}`);
       
@@ -143,6 +135,39 @@ const endGame = async (uniqueRoomIndex, winnerColor, reason) => {
     console.error(`Room not found in endGame: ${uniqueRoomIndex}`);
   }
 };
+// const endGame = async (uniqueRoomIndex, winnerColor, reason) => {
+//   const timer = gameTimers[uniqueRoomIndex];
+//   if (timer) {
+//     clearInterval(timer.intervalId);
+//     delete gameTimers[uniqueRoomIndex];
+//   }
+
+//   const [roomIndex, selectedTime] = uniqueRoomIndex.split('-');
+//   const lobby = lobbies[selectedTime];
+//   const room = lobby.find(room => room.roomIndex === parseInt(roomIndex));
+  
+//   if (room) {
+//     const result = winnerColor === "w" ? "w" : "b";
+  
+
+//     io.to(uniqueRoomIndex).emit("gameOver", reason);
+//     const gameState = JSON.stringify(new Chess(room.game).history({ verbose: true }));
+
+//     // Save game result in Azure SQL Database
+//     await saveAzureGameResult(room.white, room.black, result, gameState);
+//         await redisClient.del(`userRoom:${room.white}`);
+//         await redisClient.del(`userRoom:${room.black}`);
+      
+
+//     // Remove room from lobby
+//     lobby.splice(lobby.findIndex(room => room.roomIndex === parseInt(roomIndex)), 1);
+
+//     // Make all sockets leave the room and delete the room from the socket.io namespace
+//     io.socketsLeave(uniqueRoomIndex);
+//   } else {
+//     console.error(`Room not found in endGame: ${uniqueRoomIndex}`);
+//   }
+// };
 
 const assignUserToRoom = async (socket,userId, selectedTime) => {
 
@@ -165,22 +190,25 @@ const assignUserToRoom = async (socket,userId, selectedTime) => {
   }
   console.log("174")
   const timeLobby = await redisClient.json.get(`lobbies`, {path:`$.${selectedTime}min`});
+  console.log(`timeLobby${timeLobby}`)
 let RoomId=null;
 if(timeLobby[0]&&Object.keys(timeLobby[0]).length>0){
 for (const [key, room] of Object.entries(timeLobby)) {
   RoomId = Object.keys(room)[0]; 
+  console.log(`RoomId${RoomId}`)
   if (!room[RoomId].user2) {
+    console.log("user2")
     await redisClient.hSet('userRoom', userId, JSON.stringify({ RoomId, lobby: `${selectedTime}min` }));  
     const gameState=new Chess().fen();
     const white=Math.random()>0.5?userId:room[RoomId].user1;
     const black=white===userId?room[RoomId].user1:userId;
-    await redisClient.json.set("lobbies", `$.${selectedTime}min.${RoomId}`, { user1:room[RoomId].user1,user2:userId,gameSate:gameState,white:white,black:black,user1Name:room[RoomId].user1Name,user2Name:userName });
+    await redisClient.json.set("lobbies", `$.${selectedTime}min.${RoomId}`, { user1:room[RoomId].user1,user2:userId,gameSate:gameState,gameHistory:[],white:white,black:black,user1Name:room[RoomId].user1Name,user2Name:userName });
      return {RoomId,lobby:`${selectedTime}min`};
   }
 }
 }
   RoomId = Math.random().toString(36).substring(7);
-  await redisClient.json.set("lobbies", `$.${selectedTime}min.${RoomId}`, { user1:userId,user2:null,gameSate:null,white:null,black:null,user1Name:userName,user2Name:null });
+  await redisClient.json.set("lobbies", `$.${selectedTime}min.${RoomId}`, { user1:userId,user2:null,gameSate:null,gameHistory:null,white:null,black:null,user1Name:userName,user2Name:null });
   await redisClient.hSet('userRoom', userId, JSON.stringify({ RoomId, lobby: `${selectedTime}min` }));
   return {RoomId,lobby:`${selectedTime}min`};
 }
@@ -196,11 +224,13 @@ io.use(async (socket, next) => {
     if (!token) return next(new Error("Authentication Error"));
     try {
       const decoded = jwt.verify(token, secretKeyJWT);
-      socket.decoded = decoded; // Attach decoded token payload to socket object
+      socket.decoded = decoded; // Attach decoded token payload to socket object though seems to be unnecessay
       console.log(`User ${decoded.id} authenticated`);
       const selectedTime = parseInt(socket.handshake.query.time, 10);
       const value = await assignUserToRoom(socket,decoded.id, selectedTime);
-     const roomInfo= await redisClient.json.get("lobbies", {path:`$.${value.lobby}.${value.RoomId}`}); 
+      socket.roomId = value.RoomId;
+      socket.selectedTime = selectedTime+"min";
+      const roomInfo= await redisClient.json.get("lobbies", {path:`$.${value.lobby}.${value.RoomId}`}); 
      socket.join(`${value.RoomId}`)
      console.log("roomInfo")
       console.log(roomInfo)
@@ -236,31 +266,30 @@ io.use(async (socket, next) => {
   // Handle incoming moves
   socket.on("move", async (move) => {
     const userId = socket.decoded.id;
-    const userRoomKey = `userRoom:${userId}`;
-    const userRoom = JSON.parse(await redisClient.get(userRoomKey));
+   
+    const userRoom = socket.roomId;
+    const lobby = socket.selectedTime;
+
 
     if (!userRoom) {
       console.log(`User room not found for user: ${userId}`);
       return;
     }
+    // const uniqueRoomIndex = `${userRoom.roomIndex}-${userRoom.time}`;
+    // const lobby = lobbies[userRoom.time];
+    // const room = lobby.find(room => room.roomIndex === userRoom.roomIndex);
+    
+    const roomInfo= await redisClient.json.get("lobbies", {path:`$.${lobby}.${userRoom}`}); 
+      const game = new Chess(`${roomInfo[0].gameSate}`);
+      const movePlayed = game.move(move);
+      console.log(movePlayed)
+      if(movePlayed){
+        await redisClient.json.ARRAPPEND("lobbies",`$.${lobby}.${userRoom}.gameHistory`,movePlayed);
+        await redisClient.json.set("lobbies",`$.${lobby}.${userRoom}.gameSate`,game.fen());
+        io.to(userRoom).emit("gameState", game.fen());
+      // Update timer
 
-    const uniqueRoomIndex = `${userRoom.roomIndex}-${userRoom.time}`;
-    const lobby = lobbies[userRoom.time];
-    const room = lobby.find(room => room.roomIndex === userRoom.roomIndex);
-
-    if (room) {
-      const game = new Chess(room.game);
-      const result = game.move(move);
-
-      if (result) {
-        // history
-        if (!room.history) {
-          room.history = [];
-        }
-        room.history.push(game.history({verbose: true})[0]);
-  
-        // Update timerd
-        const timer = gameTimers[uniqueRoomIndex];
+        const timer = gameTimers[userRoom];
         if (timer) {
           timer.currentPlayer = timer.currentPlayer === "w" ? "b" : "w";
         } else {
@@ -293,38 +322,21 @@ io.use(async (socket, next) => {
           gameOver = true;
           result="d";
           gameOverMessage = "Draw";
-        }
-        // Update game state in Redis
-        room.game = game.fen();
-        
-            const gameState = JSON.stringify(room.history);
-          console.log("gameState "+gameState);
-          console.log("roomindex"+userRoom.roomIndex)
-        await redisClient.set("rooms", JSON.stringify(lobbies)); // Save updated lobbies to Redis
-
-        // Emit updated game state to both players in the room
-        io.to(uniqueRoomIndex).emit("gameState", game.fen());
+        }        
 
         if (gameOver) {
-          io.to(uniqueRoomIndex).emit("gameOver", gameOverMessage);
-          // Save game result and remove the room from Redis
-
-          const gameState = JSON.stringify(room.history);
-          console.log("gameover--gameState "+gameState);
-          console.log("gameover--roomindex"+room.roomIndex)
-          await saveAzureGameResult(room.white, room.black, result, gameState)
+          // io.to(roomId).emit("gameOver", {gameOverMessage:gameOverMessage,result:result});
+          // // Save game result and remove the room from Redis
+          // await saveAzureGameResult(room.white, room.black, result, gameState)
 
 
-              await redisClient.del(userRoomKey);
+          //     await redisClient.del(userRoomKey);
             
-          endGame(uniqueRoomIndex, winner, gameOverMessage);
+          endGame(userRoom,result,gameOverMessage);
         }
       } else {
         socket.emit("invalidMove", "Invalid move");
       }
-    } else {
-      console.error(`Room not found in move: ${uniqueRoomIndex}`);
-    }
   });
 
    // Handle resign event

@@ -140,7 +140,7 @@ router.get('/current_user', authenticateJWT, async (req, res) => {
   console.log(req.user)
   const result= await findUserById(req.user.id)
   console.log(result);
-    res.json({ username: result.username });
+    res.json({ username: result.username});
   });
 
 router.get('/user/profile', authenticateJWT, (req, res) => {
@@ -162,6 +162,8 @@ router.get('/user/profile', authenticateJWT, (req, res) => {
 
 router.get('/user/games', authenticateJWT, (req, res) => {
   try {
+    console.log("user id in router")
+    console.log(req.user.id)
     getGamesByUserId(req.user.id, (err, games) => {
       if (err) {
         return res.status(500).json({ message: 'Internal server error.' });
