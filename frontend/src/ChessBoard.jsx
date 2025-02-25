@@ -59,18 +59,14 @@ export default function ChessBoard() {
 
     socket.on('roleAssign', ({ role, userName }) => {
       console.log('Role assigned:', role);
+      console.log(userName)
       setPlayerRole(role);
-      setPlayers(prev => ({ ...prev, [role === "w" ? "white" : "black"]: { userName, socketId } }));
+      setPlayers({white:userName.whiteUser,black:userName.blackUser});
     });
 
     socket.on("gameState", (fen) => {
       chess.load(fen);
       setBoard([...chess.board()]);
-    });
-
-    socket.on("players", (players) => {
-      console.log(players);
-      setPlayers(players);
     });
 
     socket.on("gameOver", (message) => {
@@ -169,14 +165,14 @@ export default function ChessBoard() {
         <div className={styles.playerInfo}>
           <p>White:</p>
           <p className={styles.playerName}>
-            {players.white ? players.white.userName : "Not connected yet"}
+            {players.white ? players.white : "Not connected yet"}
           </p>
           <p>{formatTime(whiteTime)}</p>
         </div>
         <div className={styles.playerInfo}>
           <p>Black:</p>
           <p className={styles.playerName}>
-            {players.black ? players.black.userName : "Not connected yet"}
+            {players.black ? players.black: "Not connected yet"}
           </p>
           <p>{formatTime(blackTime)}</p>
         </div>

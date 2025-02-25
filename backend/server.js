@@ -60,14 +60,6 @@ const clearAllRedisKeys = async () => {
 
   let lobbie=await redisClient.json.get("lobbies");
   console.log(lobbie);
-// const v=  await redisClient.json.get("lobbies",{path:"$.5min"});
-
-
-  
-  // const removedCount = await redisClient.json.del(
-  //   "lobbies",          // the Redis key where your JSON is stored
-  //   `$.lobby5min.${id}`    // JSON path to the object you want to delete
-  // );
 })();
 
 
@@ -152,7 +144,7 @@ const endGame = async (uniqueRoomIndex, winnerColor, reason) => {
   }
 };
 
-const assignUserToRoom = async (userId, selectedTime) => {
+const assignUserToRoom = async (socket,userId, selectedTime) => {
 
   const existingRoom = await redisClient.hGet('userRoom', userId);
   console.log("existingRoom")
@@ -171,6 +163,7 @@ const assignUserToRoom = async (userId, selectedTime) => {
     }
   
   }
+  console.log("174")
   const timeLobby = await redisClient.json.get(`lobbies`, {path:`$.${selectedTime}min`});
 let RoomId=null;
 if(timeLobby[0]&&Object.keys(timeLobby[0]).length>0){
@@ -181,7 +174,7 @@ for (const [key, room] of Object.entries(timeLobby)) {
     const gameState=new Chess().fen();
     const white=Math.random()>0.5?userId:room[RoomId].user1;
     const black=white===userId?room[RoomId].user1:userId;
-    await redisClient.json.set("lobbies", `$.${selectedTime}min.${RoomId}`, { user1:room[RoomId].user1,user2:userId,gameSate:gameState,white:white,black:black,user1Name:room[roomId].user1Name,user2Name:userName });
+    await redisClient.json.set("lobbies", `$.${selectedTime}min.${RoomId}`, { user1:room[RoomId].user1,user2:userId,gameSate:gameState,white:white,black:black,user1Name:room[RoomId].user1Name,user2Name:userName });
      return {RoomId,lobby:`${selectedTime}min`};
   }
 }
@@ -206,9 +199,11 @@ io.use(async (socket, next) => {
       socket.decoded = decoded; // Attach decoded token payload to socket object
       console.log(`User ${decoded.id} authenticated`);
       const selectedTime = parseInt(socket.handshake.query.time, 10);
-      const value = await assignUserToRoom(decoded.id, selectedTime);
+      const value = await assignUserToRoom(socket,decoded.id, selectedTime);
      const roomInfo= await redisClient.json.get("lobbies", {path:`$.${value.lobby}.${value.RoomId}`}); 
      socket.join(`${value.RoomId}`)
+     console.log("roomInfo")
+      console.log(roomInfo)
      if(!roomInfo[0].user2||!roomInfo[0].user1)
      {
       socket.emit("waitng","waiting for the other player to join");
@@ -216,9 +211,7 @@ io.use(async (socket, next) => {
      }
      else{
       io.to(`${value.RoomId}`).emit("startGame","Game Started");
-      // io.to(`${value.RoomId}`).emit("roleAssign",{role:roomInfo[0].white===decoded.id?"w":"b",userName:roomInfo[0].user1==decoded.id?roomInfo[0].user1Name:roomInfo[0].user2Name});
-      io.to(`${value.RoomId}`).emit("roleAssign",{role:roomInfo[0].white===decoded.id?"w":"b",usernames:{userName1:roomInfo[0].white==roomInfo[0].user1?roomInfo[0].,fgj:roomInfo[0].user2Name}});
-
+      io.to(`${value.RoomId}`).emit("roleAssign",{role:roomInfo[0].white===decoded.id?"w":"b",usernames:{whiteUser:roomInfo[0].white==roomInfo[0].user1?roomInfo[0].user1Name:roomInfo[0].user2Name,blackUser:roomInfo[0].black==roomInfo[0].user1?roomInfo[0].user1Name:roomInfo[0].user2Name}});
       io.to(`${value.RoomId}`).emit("gameState", roomInfo[0].gameState);        
       startTimer(`${value.RoomId}`,selectedTime);
      }
@@ -232,44 +225,9 @@ io.use(async (socket, next) => {
         return next(new Error("Token Verification Failed"));
       }
     }
-
-//       assignUserToRoom(decoded.id, selectedTime).then((uniqueRoomIndex) => { //here sending socket seems unnecessary
-//         if (uniqueRoomIndex !== undefined) {
-//           socket.join(uniqueRoomIndex);
-//           const [roomIndex, time] = uniqueRoomIndex.split('-');
-//           const lobby = lobbies[time];
-//           const room = lobby.find(room => room.roomIndex === parseInt(roomIndex));
-//           console.log(uniqueRoomIndex);
-//           if (room) {
-//             console.log(`User joined room ${uniqueRoomIndex}`);
-//             // Emit initial game state
-//             socket.emit("gameState", room.game);
-//             socket.emit("players", { -
-//               white: room.white ? { userName: room.whiteUserName, socketId: room.whiteSocketId } : null,
-//               black: room.black ? { userName: room.blackUserName, socketId: room.blackSocketId } : null,
-//             });
-//             // Notify other player in the room
-//             socket.to(uniqueRoomIndex).emit("players", {
-//               white: room.white ? { userName: room.whiteUserName, socketId: room.whiteSocketId } : null,
-//               black: room.black ? { userName: room.blackUserName, socketId: room.blackSocketId } : null,
-//             });
-//             // startTimer(uniqueRoomIndex); // Start the timer
-//           } else {
-//             console.error(`Room not found in assignUserToRoom: ${uniqueRoomIndex}`);
-//           }
-//         }
-//       });
-
-//       next();
-//     } catch (error) {
-//       return next(new Error("Token Verification Failed"));
-//     }
-//   });
   })
 });
  io.on("connection", (socket) => {
-//    console.log("connected");
-  // username event
   socket.on('username', (username) => {
      console.log('username:', username);
      socket.data.username = username;
