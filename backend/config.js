@@ -3,19 +3,15 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
-const config = {
-  databaseUser: process.env.DATABASE_USER,
-  databasePassword: process.env.DATABASE_PASSWORD,
-  databaseName: process.env.DATABASE_NAME,
-  databaseServer: process.env.DATABASE_SERVER,
-  databaseTrustServerCertificate: process.env.DATABASE_TRUST_SERVER_CERTIFICATE || 'no',
-  databaseConnectionTimeout: process.env.DATABASE_CONNECTION_TIMEOUT || 30000,
+export default {
+  databaseUser: process.env.DB_USER,
+  databaseHost: process.env.DB_HOST,
+  databaseName: process.env.DB_DATABASE,
+  databasePassword: process.env.DB_PASSWORD,
+  databasePort: process.env.DB_PORT,
   secretKeyJWT: process.env.SECRET_KEY_JWT,
-  port: process.env.PORT || 3000,
+  port: process.env.PORT,
+  corsOrigin: process.env.CORS_ORIGIN,
   googleClientId: process.env.GOOGLE_CLIENT_ID,
-  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  corsOrigin: process.env.CORS_ORIGIN
+  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET
 };
-
-
-export default config;

@@ -57,12 +57,14 @@ export default function ChessBoard() {
 
 
 
-    socket.on('roleAssign', ({ role, userName }) => {
+    socket.on('roleAssign', ({ role, usernames }) => {
       console.log('Role assigned:', role);
-      console.log(userName)
       setPlayerRole(role);
-      setPlayers({white:userName.whiteUser,black:userName.blackUser});
+      setPlayers({white:usernames.whiteUser,black:usernames.blackUser});
     });
+    socket.on("startGame", (message) => {
+      console.log("Game Started: " + message);});
+
 
     socket.on("gameState", (fen) => {
       chess.load(fen);
@@ -191,7 +193,7 @@ export default function ChessBoard() {
               {
                 square && square.type && (
                   (() => {
-                    console.log(square); // Log the square object for debugging
+                  
                     return (
                       <img
                         src={getPieceImage(square)}

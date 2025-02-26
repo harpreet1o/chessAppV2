@@ -7,10 +7,10 @@ import cookieParser from "cookie-parser";
 import { Chess } from "chess.js";
 import { createClient } from "redis";
 import config from './config.js';
-import sql from 'mssql';
 import authRoutes from './routes/auth.js';
 import { saveGameResult as saveAzureGameResult, saveGameResult } from "./models/games.js"; // Assume you have a similar Azure implementation
-import { userInfo } from "os";
+import pg from 'pg';
+import pool from './models/dbconnect.js';
 
 const secretKeyJWT = config.secretKeyJWT;
 const port = config.port;
@@ -41,9 +41,36 @@ const clearAllRedisKeys = async () => {
     console.error(error);
   }
 };
+const createDb = async () => {
+  try {
+    const query = `
+      CREATE TABLE IF NOT EXISTS game (
+        id SERIAL PRIMARY KEY,
+        white_player VARCHAR(255),
+        black_player VARCHAR(255),
+        result VARCHAR(50),
+        message VARCHAR(255),
+        game_state TEXT
+      );
+      CREATE TABLE IF NOT EXISTS userbase (
+        uuid CHAR(36) PRIMARY KEY,
+        email VARCHAR(255) NOT NULL,
+        username VARCHAR(255) NOT NULL,
+        user_password VARCHAR(255),
+        is_google BOOLEAN NOT NULL
+      );
+    `;
+    await pool.query(query);
+    console.log('Tables created successfully.');
+  } catch (error) {
+    console.error('Error creating tables:', error);
+  }
+};
+
 // this run at the start of the program
 (async () => {
   await redisClient.connect();
+  await createDb();
   await clearAllRedisKeys();
   console.log('Redis client connected successfully.');
   // creating lobbies in the redis client for storing the object data
@@ -52,7 +79,7 @@ const clearAllRedisKeys = async () => {
     "lobbies",
     "$",
     {
-      "5min": {"hi":"hello"},
+      "5min": {},
       "10min": {},
       "1min": {}
     }
@@ -112,14 +139,15 @@ const updateTimer = (uniqueRoomIndex,selectedTime) => {
 };
 
 const endGame = async (roomId,lobby,result,message) => {
-  const timer = gameTimers[room];
+  const timer = gameTimers[roomId];
   if (timer) {
-    delete gameTimers[room];
+    delete gameTimers[roomId];
   }
    
-  if (room) { 
+  if (roomId) { 
     io.to(roomId).emit("gameOver", {message: message, result: result});
-    const room= await redisClient.json.get("lobbies", {path:`$.${lobby}.${roomId}`})[0];
+    const roomT= await redisClient.json.get("lobbies", {path:`$.${lobby}.${roomId}`});
+    const room=roomT[0];
     await saveGameResult(room.white, room.black, result,message, room.gameHistory);
  // Delete room information from Redis
  await redisClient.json.del("lobbies", `$.${lobby}.${room}`);
@@ -196,6 +224,13 @@ io.use(async (socket, next) => {
      socket.join(`${value.RoomId}`)
      console.log("roomInfo")
       console.log(roomInfo)
+      const getRoomSize = (roomId) => {
+        const room = io.sockets.adapter.rooms.get(roomId);
+        return room ? room.size : 0;
+      };
+      const roomSize = getRoomSize(value.RoomId);
+console.log(`Number of clients in room : ${roomSize}`);
+      
      if(!roomInfo[0].user2||!roomInfo[0].user1)
      {
       socket.emit("waitng","waiting for the other player to join");
@@ -296,19 +331,20 @@ io.use(async (socket, next) => {
     const roomId = socket.roomId;
     const lobby = socket.selectedTime;
 
-    if (!userRoom) {
+    if (!userId) {
       console.log(`User room not found for user: ${userId}`);
       return;
     }
 
 
-    if (room) {
-      const room= await redisClient.json.get("lobbies", {path:`$.${lobby}.${roomId}`})[0];
+    if (roomId) {
+      const roomT= await redisClient.json.get("lobbies", {path:`$.${lobby}.${roomId}`});
+      const room=roomT[0];
       const winnerColor=room.white===userId?"b":"w";
       const reason = `${winnerColor==='w'?"black Resigned":"white Resigned"}`;
       endGame(roomId,lobby, winnerColor, reason);
     } else {
-      console.error(`Room not found in resign: ${uniqueRoomIndex}`);
+      console.error(`Room not found in resign`);
     }
   });
 
@@ -322,34 +358,7 @@ io.use(async (socket, next) => {
       return;
     }
     io.to(userRoom).emit("opponentLeft", "Opponent left the game");
-    // const uniqueRoomIndex = `${userRoom.roomIndex}-${userRoom.time}`;
-    // const lobby = lobbies[userRoom.time];
-    // const room = lobby.find(room => room.roomIndex === userRoom.roomIndex);
-
-    // if (room) {
-    //   if (room.white === userId) {
-    //     room.white = null;
-    //     console.log(`User ${userId} left room ${uniqueRoomIndex} (was white)`);
-    //   } else if (room.black === userId) {
-    //     room.black = null;
-    //     console.log(`User ${userId} left room ${uniqueRoomIndex} (was black)`);
-    //   }
-
-      
-    //   if (!room.white && !room.black) {
-    //     const roomIndexInLobby = lobby.findIndex(room => room.roomIndex === userRoom.roomIndex);
-    //     lobby.splice(roomIndexInLobby, 1);
-    //     console.log(`Room ${uniqueRoomIndex} removed because it is empty`);
-    //   }
-
-    //   await redisClient.set("rooms", JSON.stringify(lobbies)); // Save updated lobbies to Redis
-    //   await redisClient.del(userRoomKey);
-
-    //   // Make the user leave the socket.io room
-    //   socket.leave(uniqueRoomIndex);
-    // } else {
-    //   console.error(`Room not found in disconnect: ${uniqueRoomIndex}`);
-    // }
+   
   });
 });
 server.listen(port, () => {
