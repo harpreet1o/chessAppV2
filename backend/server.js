@@ -11,6 +11,7 @@ import authRoutes from './routes/auth.js';
 import { saveGameResult as saveAzureGameResult, saveGameResult } from "./models/games.js"; // Assume you have a similar Azure implementation
 import pg from 'pg';
 import pool from './models/dbconnect.js';
+import { set } from "mongoose";
 
 const secretKeyJWT = config.secretKeyJWT;
 const port = config.port;
@@ -162,13 +163,14 @@ const endGame = async (roomId,lobby,result,message) => {
 const assignUserToRoom = async (socket,userId, selectedTime) => {
 
   const existingRoom = await redisClient.hGet('userRoom', userId);
+  const userRooms = await redisClient.hGetAll('userRoom');
+  console.log(userRooms);
   console.log("existingRoom")
   const userName = socket.handshake.query.username;
   console.log(existingRoom)
   if(existingRoom){
     const data = JSON.parse(existingRoom);
     const roomInfo = await redisClient.json.get(`lobbies`, {path:`$.${data.lobby}.${data.RoomId}`});
-    console.log(roomInfo);
     const room=roomInfo[0]
     if (room.user2&&room.user1) 
       return { RoomId: data.RoomId, lobby: data.lobby };
@@ -192,13 +194,14 @@ for (const [key, room] of Object.entries(timeLobby)) {
     const gameState=new Chess().fen();
     const white=Math.random()>0.5?userId:room[RoomId].user1;
     const black=white===userId?room[RoomId].user1:userId;
-    await redisClient.json.set("lobbies", `$.${selectedTime}min.${RoomId}`, { user1:room[RoomId].user1,user2:userId,gameSate:gameState,gameHistory:[],white:white,black:black,user1Name:room[RoomId].user1Name,user2Name:userName });
+    await redisClient.json.set("lobbies", `$.${selectedTime}min.${RoomId}`, { user1:room[RoomId].user1,user2:userId,gameState:gameState,gameHistory:[],white:white,black:black,user1Name:room[RoomId].user1Name,user2Name:userName });
      return {RoomId,lobby:`${selectedTime}min`};
   }
 }
+
 }
   RoomId = Math.random().toString(36).substring(7);
-  await redisClient.json.set("lobbies", `$.${selectedTime}min.${RoomId}`, { user1:userId,user2:null,gameSate:null,gameHistory:null,white:null,black:null,user1Name:userName,user2Name:null });
+  await redisClient.json.set("lobbies", `$.${selectedTime}min.${RoomId}`, { user1:userId,user2:null,gameState:null,gameHistory:null,white:null,black:null,user1Name:userName,user2Name:null });
   await redisClient.hSet('userRoom', userId, JSON.stringify({ RoomId, lobby: `${selectedTime}min` }));
   return {RoomId,lobby:`${selectedTime}min`};
 }
@@ -220,10 +223,12 @@ io.use(async (socket, next) => {
       const value = await assignUserToRoom(socket,decoded.id, selectedTime);
       socket.roomId = value.RoomId;
       socket.selectedTime = selectedTime+"min";
+      const roomInf= await redisClient.json.get("lobbies", {path:`$.${value.lobby}`}); 
+      console.log(roomInf)
       const roomInfo= await redisClient.json.get("lobbies", {path:`$.${value.lobby}.${value.RoomId}`}); 
-     socket.join(`${value.RoomId}`)
-     console.log("roomInfo")
-      console.log(roomInfo)
+    await socket.join(`${value.RoomId}`)
+    //  console.log("roomInfo")
+    //   console.log(roomInfo)
       const getRoomSize = (roomId) => {
         const room = io.sockets.adapter.rooms.get(roomId);
         return room ? room.size : 0;
@@ -237,10 +242,16 @@ console.log(`Number of clients in room : ${roomSize}`);
 
      }
      else{
+    setTimeout(() => {
       io.to(`${value.RoomId}`).emit("startGame","Game Started");
-      io.to(`${value.RoomId}`).emit("roleAssign",{role:roomInfo[0].white===decoded.id?"w":"b",usernames:{whiteUser:roomInfo[0].white==roomInfo[0].user1?roomInfo[0].user1Name:roomInfo[0].user2Name,blackUser:roomInfo[0].black==roomInfo[0].user1?roomInfo[0].user1Name:roomInfo[0].user2Name}});
-      io.to(`${value.RoomId}`).emit("gameState", roomInfo[0].gameState);        
+      const availableId=socket.id;
+
+      (roomInfo[0].white===availableId)?io.to(`${value.RoomId}`).emit("roleAssign",{role:`w${availableId}`,usernames:{whiteUser:roomInfo[0].user1Name,blackUser:roomInfo[0].user2Name}}):io.to(`${value.RoomId}`).emit("roleAssign",{role:`b${decoded.id}`,usernames:{whiteUser:roomInfo[0].user1Name,blackUser:roomInfo[0].user2Name}});
+      // io.to(`${value.RoomId}`).emit("roleAssign",{role:roomInfo[0].white===decoded.id?"w":"b",usernames:{whiteUser:roomInfo[0].white==roomInfo[0].user1?roomInfo[0].user1Name:roomInfo[0].user2Name,blackUser:roomInfo[0].black==roomInfo[0].user1?roomInfo[0].user1Name:roomInfo[0].user2Name}});
+      io.to(`${value.RoomId}`).emit("gameState", roomInfo[0].gameState);  
       startTimer(`${value.RoomId}`,selectedTime);
+        },3000)
+   
      }
       next();
     } catch (error) {
@@ -273,12 +284,12 @@ console.log(`Number of clients in room : ${roomSize}`);
       return;
     }    
     const roomInfo= await redisClient.json.get("lobbies", {path:`$.${lobby}.${userRoom}`}); 
-      const game = new Chess(`${roomInfo[0].gameSate}`);
+      const game = new Chess(`${roomInfo[0].gameState}`);
       const movePlayed = game.move(move);
       console.log(movePlayed)
       if(movePlayed){
         await redisClient.json.ARRAPPEND("lobbies",`$.${lobby}.${userRoom}.gameHistory`,movePlayed);
-        await redisClient.json.set("lobbies",`$.${lobby}.${userRoom}.gameSate`,game.fen());
+        await redisClient.json.set("lobbies",`$.${lobby}.${userRoom}.gameState`,game.fen());
         io.to(userRoom).emit("gameState", game.fen());
       // Update timer
 
@@ -357,8 +368,9 @@ console.log(`Number of clients in room : ${roomSize}`);
       console.log(`User room not found for user: ${userId}`);
       return;
     }
+    
     io.to(userRoom).emit("opponentLeft", "Opponent left the game");
-   
+    socket.leave(userRoom);
   });
 });
 server.listen(port, () => {

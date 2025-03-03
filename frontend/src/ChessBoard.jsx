@@ -58,8 +58,19 @@ export default function ChessBoard() {
 
 
     socket.on('roleAssign', ({ role, usernames }) => {
-      console.log('Role assigned:', role);
-      setPlayerRole(role);
+      console.log("hi");
+   console.log( role);
+      const getRole = role.substring(0,1);
+      const getSocket=role.substring(1);
+      console.log(usernames);
+      console.log(getRole);
+      console.log(socket.id)
+      if(getSocket==socket.id){
+        setPlayerRole(getRole);
+      }
+      else{
+        setPlayerRole(getRole==="w"?"b":"w");
+      }
       setPlayers({white:usernames.whiteUser,black:usernames.blackUser});
     });
     socket.on("startGame", (message) => {
