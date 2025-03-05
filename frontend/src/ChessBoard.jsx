@@ -62,14 +62,14 @@ export default function ChessBoard() {
    console.log( role);
       const getRole = role.substring(0,1);
       const getSocket=role.substring(1);
-      console.log(usernames);
-      console.log(getRole);
-      console.log(socket.id)
+ 
       if(getSocket==socket.id){
         setPlayerRole(getRole);
+        console.log("role assigned same socket");
       }
       else{
         setPlayerRole(getRole==="w"?"b":"w");
+        console.log("role assigned different socket");
       }
       setPlayers({white:usernames.whiteUser,black:usernames.blackUser});
     });

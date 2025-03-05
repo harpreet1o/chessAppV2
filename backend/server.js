@@ -85,10 +85,21 @@ const createDb = async () => {
       "1min": {}
     }
   );
+  const lobbies = await redisClient.json.get("lobbies");
+  console.log(lobbies);
+  await redisClient.json.set("lobbies", "$.5min.id", { name: "hello" })
+  let lobbi=await redisClient.json.get("lobbies");
+  console.log(lobbi);
+  const id="id"
+  
+  const removedCount = await redisClient.json.del(
+    "lobbies",          // the Redis key where your JSON is stored
+    `$.5min.${id}`    // JSON path to the object you want to delete
+  );
 
 
-  let lobbie=await redisClient.json.get("lobbies");
-  console.log(lobbie);
+  let lob=await redisClient.json.get("lobbies");
+  console.log(lob);
 })();
 
 
@@ -245,8 +256,8 @@ console.log(`Number of clients in room : ${roomSize}`);
     setTimeout(() => {
       io.to(`${value.RoomId}`).emit("startGame","Game Started");
       const availableId=socket.id;
-
-      (roomInfo[0].white===availableId)?io.to(`${value.RoomId}`).emit("roleAssign",{role:`w${availableId}`,usernames:{whiteUser:roomInfo[0].user1Name,blackUser:roomInfo[0].user2Name}}):io.to(`${value.RoomId}`).emit("roleAssign",{role:`b${decoded.id}`,usernames:{whiteUser:roomInfo[0].user1Name,blackUser:roomInfo[0].user2Name}});
+      console.log(`availableId${availableId}`);
+      (roomInfo[0].white===decoded)?io.to(`${value.RoomId}`).emit("roleAssign",{role:`w${availableId}`,usernames:{whiteUser:roomInfo[0].user1Name,blackUser:roomInfo[0].user2Name}}):io.to(`${value.RoomId}`).emit("roleAssign",{role:`b${availableId}`,usernames:{whiteUser:roomInfo[0].user1Name,blackUser:roomInfo[0].user2Name}});
       // io.to(`${value.RoomId}`).emit("roleAssign",{role:roomInfo[0].white===decoded.id?"w":"b",usernames:{whiteUser:roomInfo[0].white==roomInfo[0].user1?roomInfo[0].user1Name:roomInfo[0].user2Name,blackUser:roomInfo[0].black==roomInfo[0].user1?roomInfo[0].user1Name:roomInfo[0].user2Name}});
       io.to(`${value.RoomId}`).emit("gameState", roomInfo[0].gameState);  
       startTimer(`${value.RoomId}`,selectedTime);
