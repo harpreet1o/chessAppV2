@@ -1,17 +1,20 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState,useContext } from 'react';
 import { useLocation } from 'react-router-dom';
+import { UserContext } from '../context/UserContext';
 import { Chess } from 'chess.js';
 
 const GameDetail = () => {
+      const { user} = useContext(UserContext);
     const location = useLocation();
     const game = location.state?.game;
-
     const chess = useMemo(() => new Chess(), []);
     const [board, setBoard] = useState([]);
     const [selectedMoveIndex, setSelectedMoveIndex] = useState(0);
 
+    const OtherPlayer=game.white_player===user?game.black_player:game.white_player;
+    const result=game.result==="d"?"draw":game.result==="w"&&game.white_player===user?"win":game.result==="w"&&game.black_player===user?"lose":game.result==="b"&&game.white_player===user?"lose":"win";
     useEffect(() => {
-        if (game && JSON.parse(game.game_state).length > 0) {
+        if (game && (game.game_state).length > 0) {
             updateBoard(selectedMoveIndex);
         }
     }, [game, chess, selectedMoveIndex]);
@@ -56,11 +59,14 @@ const GameDetail = () => {
         <div className="container mx-auto mt-8">
             <h1 className="text-2xl font-bold mb-6">Game Detail</h1>
             <div className="bg-white shadow-lg rounded-lg p-6 mb-6">
-                <p><strong>White Player:</strong> {game.white_username}</p>
-                <p><strong>Black Player:</strong> {game.black_username}</p>
-                <p><strong>Winner:</strong> {game.winner}</p>
-                <p><strong>Loser:</strong> {game.loser}</p>
-                {game.timestamp && <p><strong>Timestamp:</strong> {new Date(game.timestamp).toLocaleString()}</p>}
+            <p><strong>Other Player:</strong> {
+                    OtherPlayer
+                }</p>
+                 <p><strong>Result:</strong> {
+                    result
+                }</p>
+               
+                <p><strong>Due to:</strong> {game.message}</p>
             </div>
 
             <div className="grid grid-cols-8 grid-rows-8 gap-0 border-2 border-gray-800 w-80 h-80">
@@ -68,7 +74,7 @@ const GameDetail = () => {
                     row.map((square, squareIndex) => (
                         <div
                             key={(rowIndex) * 8 + (squareIndex)}
-                            className={`w-full h-full flex items-center justify-center ${(rowIndex + squareIndex) % 2 === 0 ? "bg-green-400" : "bg-green-800"}`}
+                            className={`w-full h-full flex items-center justify-center ${(rowIndex + squareIndex) % 2 === 0 ? "bg-chessLight" : "bg-chessDark"}`}
                         >
                             <span
                                 className={`text-2xl ${square && square.color === "w" ? "text-white" : "text-black"}`}

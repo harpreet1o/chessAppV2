@@ -3,7 +3,7 @@ import express from 'express';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { v4 as uuidv4 } from 'uuid';
-import { createUser, findUserByEmail,  findUserById,UserLoginByGoogle } from '../models/User.js';
+import { createUser, findUserByEmail,  findUserById,UserLoginByGoogle ,findGamesStatsByUserId} from '../models/User.js';
 import { matchPassword, authenticateJWT, generateToken } from '../models/helper.js';
 import { getGamesByUserId } from '../models/games.js';
 import config from '../config.js';
@@ -143,22 +143,32 @@ router.get('/current_user', authenticateJWT, async (req, res) => {
     res.json({ username: result.username});
   });
 
-router.get('/user/profile', authenticateJWT, (req, res) => {
-  try {
-    findUserById(req.user.id, (err, user) => {
-      if (err) {
-        return res.status(500).json({ message: 'Internal server error.' });
-      }
+  router.get('/user/profile', authenticateJWT, async (req, res) => {
+    console.log("got a call");
+    try {
+      const user = await findUserById(req.user.id);
       if (!user) {
         return res.status(404).json({ message: 'User not found.' });
-      };
-      res.json(user);
-    });
-
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
-  }
-});
+      }
+  
+      const gamesStats = await findGamesStatsByUserId(req.user.id);
+  
+      console.log("user");
+      console.log(user);
+      console.log("gamesStats");
+      console.log(gamesStats);
+  
+      res.json({
+        ...user,
+        gamesPlayed: gamesStats.gamesPlayed,
+        gamesWon: gamesStats.gamesWon,
+        gamesDrawn: gamesStats.gamesDrawn,
+      });
+    } catch (err) {
+      console.error('Error finding user by ID:', err);
+      return res.status(500).json({ message: 'Internal server error.' });
+    }
+  });
 
 router.get('/user/games', authenticateJWT, (req, res) => {
   try {

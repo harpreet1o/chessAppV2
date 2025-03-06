@@ -5,10 +5,28 @@ import bcrypt from "bcryptjs";
 const findUserById = async (id) => {
   try {
     const result = await pool.query('SELECT uuid, username, email FROM userbase WHERE uuid = $1', [id]);
+    console.log("finding")
+    console.log(result.rows[0])
     return result.rows[0];
   } catch (err) {
     console.error('Error finding user by ID:', err);
     return err;
+  }
+};
+const findGamesStatsByUserId = async (userId) => {
+  try {
+    const gamesPlayedResult = await pool.query('SELECT COUNT(*) FROM game WHERE white_player = $1 OR black_player = $1', [userId]);
+    const gamesWonResult = await pool.query('SELECT COUNT(*) FROM game WHERE (white_player = $1 AND result = $2) OR (black_player = $1 AND result = $3)', [userId, 'w', 'b']);
+    const gamesDrawnResult = await pool.query('SELECT COUNT(*) FROM game WHERE (white_player = $1 OR black_player = $1) AND result = $2', [userId, 'd']);
+
+    return {
+      gamesPlayed: parseInt(gamesPlayedResult.rows[0].count, 10),
+      gamesWon: parseInt(gamesWonResult.rows[0].count, 10),
+      gamesDrawn: parseInt(gamesDrawnResult.rows[0].count, 10),
+    };
+  } catch (err) {
+    console.error('Error finding games stats by user ID:', err);
+    throw err;
   }
 };
 
@@ -62,4 +80,4 @@ const findUserByEmail = async (email) => {
   }
 };
 
-export { findUserById, createUser, findUserByEmail, UserLoginByGoogle };
+export { findUserById, createUser, findUserByEmail, UserLoginByGoogle,findGamesStatsByUserId };

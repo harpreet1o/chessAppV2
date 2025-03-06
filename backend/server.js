@@ -136,12 +136,12 @@ const updateTimer = (uniqueRoomIndex,selectedTime) => {
   if (timer.currentPlayer === "w") {
     timer.whiteTime--;
     if (timer.whiteTime <= 0) {
-      endGame(uniqueRoomIndex,`${selectedTime}min`, "black", "Time out");
+      endGame(uniqueRoomIndex,`${selectedTime}min`, "b", "Time out");
     }
   } else {
     timer.blackTime--;
     if (timer.blackTime <= 0) {
-      endGame(uniqueRoomIndex, `${selectedTime}min`,"white", "Time out");
+      endGame(uniqueRoomIndex, `${selectedTime}min`,"w", "Time out");
     }
   }
   io.to(uniqueRoomIndex).emit("timerUpdate", {
@@ -160,6 +160,8 @@ const endGame = async (roomId,lobby,result,message) => {
     io.to(roomId).emit("gameOver", {message: message, result: result});
     const roomT= await redisClient.json.get("lobbies", {path:`$.${lobby}.${roomId}`});
     const room=roomT[0];
+    console.log(room);
+    console.log(lobby)
     await saveGameResult(room.white, room.black, result,message, room.gameHistory);
  // Delete room information from Redis
  await redisClient.json.del("lobbies", `$.${lobby}.${room}`);
