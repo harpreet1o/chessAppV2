@@ -14,6 +14,7 @@ const Games = () => {
         const fetchGames = async () => {
             try {
                 const response = await axios.get('http://localhost:3000/user/games', { withCredentials: true });
+                console.log(response.data);
                 setGames(response.data);
                 setLoading(false);
             } catch (error) {
