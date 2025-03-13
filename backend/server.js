@@ -26,14 +26,18 @@ const io = new Server(server, {
   },
 });
 
-const redisClient = createClient(
-  {
-    url: 'redis://localhost:6379'
-    }
-);
+const redisClient = createClient({
+  url: `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`
+});
 
 redisClient.on("error", (error) => console.error(`Error: ${error}`));
+// const redisClient = createClient(
+//   {
+//     url: 'redis://localhost:6379'
+//     }
+// );
 
+// redisClient.on("error", (error) => console.error(`Error: ${error}`));
 const clearAllRedisKeys = async () => {
   try {
     await redisClient.flushDb(); 

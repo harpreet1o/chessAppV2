@@ -1,20 +1,17 @@
 # Use an official Node.js runtime as a parent image
 FROM node:18
 
-# Install netcat-openbsd for wait-for-it script
+# Install netcat-openbsd for wait-for-it script (if needed)
 RUN apt-get update && apt-get install -y netcat-openbsd
 
 # Set the working directory
-WORKDIR /app
+WORKDIR /usr/src/app
 
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
 # Install dependencies
 RUN npm install
-
-
-
 
 # Copy the rest of the application code
 COPY . .
@@ -26,4 +23,4 @@ EXPOSE 3000
 ENV NODE_ENV=production
 
 # Run the app
-CMD ["sh", "-c", "npm start"]
+CMD ["npm", "start"]

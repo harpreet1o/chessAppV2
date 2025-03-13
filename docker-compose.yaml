@@ -1,20 +1,56 @@
-version: '3'
+version: '3.8'
+
 services:
-  db:
-    image: postgres
-    restart: always
-    volumes:
-      - ./data/db:/var/lib/postgresql/data
-    ports:
-      - 5432:5432  # make sure you don't have another container running on 5432
-
+  postgres:
+    image: postgres:13
+    container_name: postgres
     environment:
-      - POSTGRES_DB=chaiDB
-      - POSTGRES_USER=chaiaurcode
-      - POSTGRES_PASSWORD=chaiaurcode
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+    # No ports exposed to the public
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
-  adminer:
-    image: adminer
-    restart: always
+  redis:
+    image: redis/redis-stack-server:latest
+    container_name: redis
+    # No ports exposed to the public
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend
+    environment:
+      - PORT=${PORT}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - SECRET_KEY_JWT=${SECRET_KEY_JWT}
+      - CORS_ORIGIN=${CORS_ORIGIN}
+      - DB_USER=${DB_USER}
+      - DB_HOST=postgres
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    # No ports exposed to the public
+    depends_on:
+      - postgres
+      - redis
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    environment:
+      - VITE_API_URL=http://backend:3000
     ports:
-      - 8080:8080
+      - "5173:5173"  # Only expose the frontend port to the public
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
