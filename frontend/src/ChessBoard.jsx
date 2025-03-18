@@ -37,10 +37,12 @@ export default function ChessBoard() {
   const { time } = location.state; // Access the selected time
 
   const socket = useMemo(() => {
+    // const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
     if (user) {
-      return io("http://localhost:3000", {
+      return io(`http://localhost`, {
         withCredentials: true,
-        query: { time, username: user } // Include username in query parameters
+        query: { time, username: user }, // Include username in query parameters
+        path: '/api/socket.io' 
       });
     }
     return null;  
@@ -83,8 +85,9 @@ export default function ChessBoard() {
     });
 
     socket.on("gameOver", (message) => {
-      console.log("Game Over: " + message);
-      setGameOverMessage(message);
+      console.log("Game Over: " + message);   
+      socket.disconnect();
+      setGameOverMessage(message.message);
     });
 
     socket.on("timerUpdate", ({ whiteTime, blackTime }) => {

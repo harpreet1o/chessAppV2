@@ -20,7 +20,7 @@ const router = express.Router();
 passport.use(new GoogleStrategy({
   clientID: config.googleClientId,
   clientSecret: config.googleClientSecret,
-  callbackURL: 'http://localhost:3000/oauth2/redirect/google', 
+  callbackURL: 'http://localhost/api/oauth2/redirect/google', 
   scope: ['profile', 'email', 'openid']
 },async (accessToken, refreshToken,issuer, profile, cb) => {
   console.log("acess token");
@@ -58,7 +58,7 @@ router.get('/login/federated/google',(req, res, next) => {
       else{
     const result= await findUserById(decoded.id);
     if(result)
-          res.redirect(`http://localhost:5173`);
+          res.redirect(`http://localhost`);
   }
     });
   } else {
@@ -68,11 +68,11 @@ router.get('/login/federated/google',(req, res, next) => {
 
 router.get('/oauth2/redirect/google', passport.authenticate('google', {
   session: false,
-  failureRedirect: 'http://localhost:5173/login'
+  failureRedirect: 'http://localhost/login'
 }), (req, res) => {
   const token = generateToken(req.user.id);
   res.cookie('token', token, { httpOnly: true, secure: true, sameSite: "none" , path: '/'});
-  res.redirect(`http://localhost:5173`);
+  res.redirect(`http://localhost`);
 });
 
 
@@ -107,7 +107,6 @@ router.post('/login', async(req, res) => {
   const { email, password } = req.body;
   try{
   const result=await findUserByEmail(email);
-  console.log(matchPassword(password, result.user_password));
     if (!result || !matchPassword(password, result.user_password)) {
       return res.status(401).json({ message: 'Invalid email or password.' });
     }
@@ -116,7 +115,8 @@ router.post('/login', async(req, res) => {
     res.json({ result, token });
   }
 catch(err){
-  console.err(err);
+  console.error("Error during login:", err);
+  res.status(500).json({ message: "Internal server error" });
 }
 });
 

@@ -9,14 +9,14 @@ const Login = () => {
   const onChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
-
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
   const onSubmit = async (e) => {
     e.preventDefault();
     setError('');
     try {
-      const res = await axios.post('http://localhost:3000/login', formData, { withCredentials: true });
+      const res = await axios.post(`${apiUrl}/login`, formData, { withCredentials: true });
       console.log(res.data)
-      window.location.href = 'http://localhost:5173/';
+      window.location.href = 'http://localhost';
     } catch (err) {
       if (err.response && err.response.data) {
         setError(err.response.data.message);
@@ -27,7 +27,7 @@ const Login = () => {
   };
 
   const googleAuth = () => {
-    window.open('http://localhost:3000/login/federated/google', '_self');
+    window.open(`${apiUrl}/login/federated/google`, '_self');
   };
 
   return (
