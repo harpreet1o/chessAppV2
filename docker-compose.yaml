@@ -10,16 +10,12 @@ services:
       POSTGRES_DB: ${DB_DATABASE}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     networks:
       - app_network
 
   redis:
     image: redis/redis-stack-server:latest
     container_name: redis
-    ports:
-      - "6379:6379"
     networks:
       - app_network
 
