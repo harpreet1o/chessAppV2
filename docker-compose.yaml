@@ -8,14 +8,20 @@ services:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_DATABASE}
-    # No ports exposed to the public
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - app_network
 
   redis:
     image: redis/redis-stack-server:latest
     container_name: redis
-    # No ports exposed to the public
+    ports:
+      - "6379:6379"
+    networks:
+      - app_network
 
   backend:
     build:
@@ -23,7 +29,7 @@ services:
       dockerfile: Dockerfile
     container_name: backend
     environment:
-      - PORT=${PORT}
+      - PORT=3000
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - SECRET_KEY_JWT=${SECRET_KEY_JWT}
@@ -35,10 +41,11 @@ services:
       - DB_PORT=5432
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-    # No ports exposed to the public
     depends_on:
       - postgres
       - redis
+    networks:
+      - app_network
 
   frontend:
     build:
@@ -46,11 +53,28 @@ services:
       dockerfile: Dockerfile
     container_name: frontend
     environment:
-      - VITE_API_URL=http://backend:3000
-    ports:
-      - "5173:5173"  # Only expose the frontend port to the public
+      - VITE_API_URL=http://localhost/api/  # Route through Nginx inside Docker network
     depends_on:
       - backend
+    networks:
+      - app_network
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: nginx
+    ports:
+      - "80:80"  # Expose only Nginx to host machine
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - app_network
 
 volumes:
   postgres_data:
+
+networks:
+  app_network:
+    driver: bridge

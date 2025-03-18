@@ -1,4 +1,4 @@
-import express from "express";
+import express, { json } from "express";
 import { Server } from "socket.io";
 import { createServer } from "http";
 import cors from "cors";
@@ -8,10 +8,9 @@ import { Chess } from "chess.js";
 import { createClient } from "redis";
 import config from './config.js';
 import authRoutes from './routes/auth.js';
-import { saveGameResult as saveAzureGameResult, saveGameResult } from "./models/games.js"; // Assume you have a similar Azure implementation
-import pg from 'pg';
-import pool from './models/dbconnect.js';
-import { set } from "mongoose";
+import {  saveGameResult } from "./models/games.js"; // Assume you have a similar Azure implementation
+import { createDb } from "./logic/serverStartFunction.js";
+
 
 const secretKeyJWT = config.secretKeyJWT;
 const port = config.port;
@@ -28,6 +27,7 @@ const io = new Server(server, {
 
 const redisClient = createClient({
   url: `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`
+  // url: 'redis://localhost:6379'
 });
 
 redisClient.on("error", (error) => console.error(`Error: ${error}`));
@@ -38,47 +38,13 @@ redisClient.on("error", (error) => console.error(`Error: ${error}`));
 // );
 
 // redisClient.on("error", (error) => console.error(`Error: ${error}`));
-const clearAllRedisKeys = async () => {
-  try {
-    await redisClient.flushDb(); 
-    console.log('All Redis keys cleared successfully.');
-  } catch (error) {
-    console.error(error);
-  }
-};
-const createDb = async () => {
-  try {
-    const query = `
-      CREATE TABLE IF NOT EXISTS game (
-        id SERIAL PRIMARY KEY,
-        white_player VARCHAR(255),
-        black_player VARCHAR(255),
-        result VARCHAR(50),
-        message VARCHAR(255),
-        game_state TEXT
-      );
-      CREATE TABLE IF NOT EXISTS userbase (
-        uuid CHAR(36) PRIMARY KEY,
-        email VARCHAR(255) NOT NULL,
-        username VARCHAR(255) NOT NULL,
-        user_password VARCHAR(255),
-        is_google BOOLEAN NOT NULL
-      );
-    `;
-    await pool.query(query);
-    console.log('Tables created successfully.');
-  } catch (error) {
-    console.error('Error creating tables:', error);
-  }
-};
 
 // this run at the start of the program
 (async () => {
   await redisClient.connect();
   await createDb();
-  await clearAllRedisKeys();
   console.log('Redis client connected successfully.');
-  // creating lobbies in the redis client for storing the object data
+  await redisClient.flushDb(); 
   await redisClient.json.del("lobbies","$.*");
   await redisClient.json.set(
     "lobbies",
@@ -89,21 +55,7 @@ const createDb = async () => {
       "1min": {}
     }
   );
-  const lobbies = await redisClient.json.get("lobbies");
-  console.log(lobbies);
-  await redisClient.json.set("lobbies", "$.5min.id", { name: "hello" })
-  let lobbi=await redisClient.json.get("lobbies");
-  console.log(lobbi);
-  const id="id"
-  
-  const removedCount = await redisClient.json.del(
-    "lobbies",          // the Redis key where your JSON is stored
-    `$.5min.${id}`    // JSON path to the object you want to delete
-  );
-
-
-  let lob=await redisClient.json.get("lobbies");
-  console.log(lob);
+  console.log('Redis keys cleared successfully.');
 })();
 
 
@@ -120,7 +72,6 @@ app.use(cookieParser());
 app.use('/', authRoutes);
 
 const gameTimers={};
-let roomId;
 const startTimer = (uniqueRoomIndex,selectedTime) => {
 if(!gameTimers[uniqueRoomIndex]){
       gameTimers[uniqueRoomIndex] = {
@@ -157,6 +108,7 @@ const updateTimer = (uniqueRoomIndex,selectedTime) => {
 const endGame = async (roomId,lobby,result,message) => {
   const timer = gameTimers[roomId];
   if (timer) {
+    clearInterval(timer.intervalId);
     delete gameTimers[roomId];
   }
    
@@ -164,14 +116,11 @@ const endGame = async (roomId,lobby,result,message) => {
     io.to(roomId).emit("gameOver", {message: message, result: result});
     const roomT= await redisClient.json.get("lobbies", {path:`$.${lobby}.${roomId}`});
     const room=roomT[0];
-    console.log(room);
-    console.log(lobby)
-    await saveGameResult(room.white, room.black, result,message, room.gameHistory);
- // Delete room information from Redis
- await redisClient.json.del("lobbies", `$.${lobby}.${room}`);
- await redisClient.hDel("userRoom", roomInfo.white);
- await redisClient.hDel("userRoom", roomInfo.black);
-      
+    await saveGameResult(room.white, room.black, result,message, JSON.stringify(room.gameHistory));
+ await redisClient.json.del("lobbies", `$.${lobby}.${roomId}`);
+ await redisClient.hDel("userRoom", room.white);
+ await redisClient.hDel("userRoom", room.black);
+
     io.socketsLeave(room);
   } else {
     console.error(`Room not found in endGame: ${room}`);
@@ -197,7 +146,6 @@ const assignUserToRoom = async (socket,userId, selectedTime) => {
     }
   
   }
-  console.log("174")
   const timeLobby = await redisClient.json.get(`lobbies`, {path:`$.${selectedTime}min`});
   console.log(`timeLobby${timeLobby}`)
 let RoomId=null;
@@ -226,7 +174,7 @@ for (const [key, room] of Object.entries(timeLobby)) {
 // Middleware to check authentication
 
 io.use(async (socket, next) => {
-  console.log(socket.id);
+  console.log("socket id"+socket.id);
 
   cookieParser()(socket.request, socket.request.res || {},async (err) => {
     if (err) return next(err);
@@ -346,7 +294,7 @@ console.log(`Number of clients in room : ${roomSize}`);
         }        
 
         if (gameOver) {                
-          endGame(userRoom,result,gameOverMessage);
+          endGame(userRoom,lobby,result,gameOverMessage);
         }
       } else {
         socket.emit("invalidMove", "Invalid move");
@@ -385,7 +333,6 @@ console.log(`Number of clients in room : ${roomSize}`);
       console.log(`User room not found for user: ${userId}`);
       return;
     }
-    
     io.to(userRoom).emit("opponentLeft", "Opponent left the game");
     socket.leave(userRoom);
   });

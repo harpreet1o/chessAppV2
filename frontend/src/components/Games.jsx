@@ -12,9 +12,10 @@ const Games = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
         const fetchGames = async () => {
             try {
-                const response = await axios.get('http://localhost:3000/user/games', { withCredentials: true });
+                const response = await axios.get(`${apiUrl}/user/games`, { withCredentials: true });
                 console.log(response.data);
                 setGames(response.data);
                 setLoading(false);
