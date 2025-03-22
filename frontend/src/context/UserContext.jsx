@@ -10,7 +10,8 @@ const UserProvider = ({ children }) => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await axios.get(`${apiUrl}/current_user`, { withCredentials: true });
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const res = await axios.get(`${apiUrl}/api/current_user`, { withCredentials: true });
         console.log(res.data)
         if(res)
           setUser(res.data.username);
