@@ -51,28 +51,42 @@ const Games = () => {
             <h1 className="text-3xl font-bold mb-6 text-center">Games Played</h1>
          
 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-{games.map((game) => (
+{games && games.length > 0 ? (
+  games.map((game) => (
     <div
-        key={game.id}
-        onClick={() => handleGameClick(game)}
-        className="border rounded-lg shadow-lg p-6 cursor-pointer hover:bg-gray-100 transition duration-300"
+      key={game.id}
+      onClick={() => handleGameClick(game)}
+      className="border rounded-lg shadow-lg p-6 cursor-pointer hover:bg-gray-100 transition duration-300"
     >
-        <div className="mb-4">
-            <h2 className="text-xl font-semibold">Game ID: {game.id}</h2>
-        </div>
-        <div className="flex justify-center items-center">
-            <img
-                src="https://thechessworld.com/wp-content/uploads/2021/03/setup-1-9-10-300x300.webp"
-                alt="Chess Board"
-                style={{ width: '200px', height: '200px' }}
-            />
-        </div>
-        <div>
-            <p className="text-black-500">
-                <strong>Result</strong> {game.result==="d"?"draw":game.result==="w"&&game.white_player===user?"win":game.result==="w"&&game.black_player===user?"lose":game.result==="b"&&game.white_player===user?"lose":"win"}</p>
-        </div>
+      <div className="mb-4">
+        <h2 className="text-xl font-semibold">Game ID: {game.id}</h2>
+      </div>
+      <div className="flex justify-center items-center">
+        <img
+          src="https://thechessworld.com/wp-content/uploads/2021/03/setup-1-9-10-300x300.webp"
+          alt="Chess Board"
+          style={{ width: '200px', height: '200px' }}
+        />
+      </div>
+      <div>
+        <p className="text-black-500">
+          <strong>Result</strong>{' '}
+          {game.result === 'd'
+            ? 'draw'
+            : game.result === 'w' && game.white_player === user
+            ? 'win'
+            : game.result === 'w' && game.black_player === user
+            ? 'lose'
+            : game.result === 'b' && game.white_player === user
+            ? 'lose'
+            : 'win'}
+        </p>
+      </div>
     </div>
-))}
+  ))
+) : (
+  <div className="text-center text-gray-500">No games available to display.</div>
+)}
 </div>
 </div>
     );
