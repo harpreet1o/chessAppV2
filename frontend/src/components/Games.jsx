@@ -15,7 +15,7 @@ const Games = () => {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
         const fetchGames = async () => {
             try {
-                const response = await axios.get(`${apiUrl}/user/games`, { withCredentials: true });
+                const response = await axios.get(`${apiUrl}/api/user/games`, { withCredentials: true });
                 console.log(response.data);
                 setGames(response.data);
                 setLoading(false);

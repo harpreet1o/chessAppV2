@@ -37,9 +37,9 @@ export default function ChessBoard() {
   const { time } = location.state; // Access the selected time
 
   const socket = useMemo(() => {
-    // const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
     if (user) {
-      return io(`http://localhost`, {
+      return io(`${apiUrl}`, {
         withCredentials: true,
         query: { time, username: user }, // Include username in query parameters
         path: '/api/socket.io' 

@@ -11,7 +11,7 @@ export default {
   databasePort: process.env.DB_PORT,
   secretKeyJWT: process.env.SECRET_KEY_JWT,
   port: process.env.PORT,
-  corsOrigin: process.env.CORS_ORIGIN,
+  url: process.env.url,
   googleClientId: process.env.GOOGLE_CLIENT_ID,
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET
 };

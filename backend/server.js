@@ -19,7 +19,7 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: config.corsOrigin,
+    origin: config.url,
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -62,7 +62,7 @@ redisClient.on("error", (error) => console.error(`Error: ${error}`));
 
 app.use(
   cors({
-    origin: config.corsOrigin,
+    origin: config.url,
     methods: ["GET", "POST"],
     credentials: true,
   })

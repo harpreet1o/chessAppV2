@@ -14,7 +14,7 @@ const Login = () => {
     e.preventDefault();
     setError('');
     try {
-      const res = await axios.post(`${apiUrl}/login`, formData, { withCredentials: true });
+      const res = await axios.post(`${apiUrl}/api/login`, formData, { withCredentials: true });
       console.log(res.data)
       window.location.href = 'http://localhost';
     } catch (err) {

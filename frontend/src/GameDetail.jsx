@@ -14,7 +14,7 @@ export default function GameDetail() {
     const fetchGameHistory = async () => {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-        const response = await fetch(`${apiUrl}/api/games/${gameId}`);
+        const response = await fetch(`${apiUrl}/api/api/games/${gameId}`);
         const data = await response.json();
         setGameHistory(data.gameHistory);
         chess.load(data.gameState);

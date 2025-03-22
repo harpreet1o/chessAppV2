@@ -17,7 +17,7 @@ const Register = () => {
         setMessage('');
         try {
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-            const res = await axios.post(`${apiUrl}/register`, formData, { withCredentials: true });
+            const res = await axios.post(`${apiUrl}/api/register`, formData, { withCredentials: true });
             console.log(res.data);
             setMessage(res.data.message );
             setFormData({ email: '', name: '', password: '' });
