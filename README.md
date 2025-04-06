@@ -74,6 +74,40 @@
 4. Access the application at `http://localhost`.
 5. If running without the docker you will need to install the redis-server, acess to postgres database and also adjust the env variables. This process could be highly time consuming so not recommended.
 
+### Environment Configuration
+
+Before running the application, ensure you configure the `.env` file with the appropriate values. Below is an example of the required environment variables:
+
+```properties
+PORT=3000
+
+# Google OAuth2 credentials for authentication
+GOOGLE_CLIENT_ID=your-google-client-id # Replace with your Google OAuth2 Client ID
+GOOGLE_CLIENT_SECRET=your-google-client-secret # Replace with your Google OAuth2 Client Secret
+
+# JWT secret key
+SECRET_KEY_JWT=your-secret-key # Replace with a strong secret key
+
+# CORS origin
+CORS_ORIGIN=http://localhost # Change to your deployed URL if applicable
+
+# Database configuration
+DB_USER=your-database-username # Replace with your database username
+DB_HOST=your-database-host # Replace with your database host (e.g., localhost or postgres)
+DB_DATABASE=your-database-name # Replace with your database name
+DB_PASSWORD=your-database-password # Replace with a strong database password
+DB_PORT=5432 # Default database port, change if necessary
+
+# Application URL
+URL=http://localhost # Change to your deployed URL if applicable
+
+# Redis configuration
+REDIS_HOST=redis # Keep as it is unless Redis is hosted elsewhere
+REDIS_PORT=6379 # Default Redis port, keep as it is
+```
+
+Ensure all values are correctly set before starting the application. If you are unsure about any value, refer to the documentation or contact the project maintainer.
+
 
 ### Hosting on DigitalOcean
 
