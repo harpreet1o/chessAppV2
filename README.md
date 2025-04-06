@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./frontend/chess.svg" width="200" height="200" alt="ChessApp Logo"/>
+  <img src="./frontend/public/chess.svg" width="200" height="200" alt="ChessApp Logo"/>
 </p>
 
 <h1 align="center">ChessApp</h1>
@@ -8,7 +8,7 @@
   A real-time multiplayer chess application built with React, Node.js, and Socket.IO.
 </p>
 
-![ChessApp Screenshot](./frontend/chess.png)
+![ChessApp Screenshot](./frontend/public/chess.png)
 
 ---
 
