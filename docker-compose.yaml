@@ -49,7 +49,7 @@ services:
       dockerfile: Dockerfile
     container_name: frontend
     environment:
-      - VITE_API_URL=http://localhost/api/  # Route through Nginx inside Docker network
+      - VITE_API_URL=http://localhost/api # Route through Nginx inside Docker network
     depends_on:
       - backend
     networks:

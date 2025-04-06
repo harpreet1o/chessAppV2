@@ -1,7 +1,11 @@
-// fixing the error of the failed login 
-//fixing the error of the res.cookie 
-res.cookie('token', token, { httpOnly: true, secure: false, sameSite: "lax", path: '/' });
- to 
- res.cookie('token', token, { httpOnly: true, secure: true, sameSite: "none" , path: '/' });
+<p align="center">
+<img src="./frontend/chess.svg" width="200" height="200" alt="Intelliquiz logo"/>
+</p>
+<h1 align="center">
+ChessApp
+</h1>
 
-// error at the end of game 
+![Image of the app](./frontend/chess.png)
+
+##Deployment
+[Link](https://playchess.harpreet1o.cc/)
