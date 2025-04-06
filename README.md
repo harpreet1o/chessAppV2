@@ -66,18 +66,13 @@
    npm install
    ```
 
-3. Start the Redis server (if not using Docker):
-   ```bash
-   redis-server
-   ```
-
-4. Run the application:
+3. Run the application:
    ```bash
    docker-compose up --build
    ```
 
-5. Access the application at `http://localhost`.
-
+4. Access the application at `http://localhost`.
+5. If running without the docker you will need to install the redis-server, acess to postgres database and also adjust the env variables. This process could be highly time consuming so not recommended.
 
 
 ### Hosting on DigitalOcean
