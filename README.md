@@ -36,6 +36,7 @@
 - **Express**: For handling API routes.
 - **Socket.IO**: For WebSocket-based real-time communication.
 - **Redis**: For session management and game state storage.
+- **Postgres**: For storing the data.
 
 ### Deployment
 - **Docker**: For containerized deployment.
